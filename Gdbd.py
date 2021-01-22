@@ -184,6 +184,10 @@ class ExportFrame(wx.Frame):
         # 已经选择的表
         self.selected_tables = None
         self.selected_table_list_str = None
+        # 默认导出路径
+        self.defult_export_path = None
+        # 默认导出文件名称
+        self.defult_export_file_name = None
         self.export_file_path = None
         # 列表框
         self.table_list_box = None
@@ -215,15 +219,24 @@ class ExportFrame(wx.Frame):
 
         # 右尺寸调整器
         label2 = wx.StaticText(self, -1, label="已选择的表")
+
+        # 已经选择表展示框
         self.selected_tables = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+
         label3 = wx.StaticText(self, -1, label="文件导出的位置")
-        self.export_file_path = wx.TextCtrl(self, value=self.GetExportPath())
-        export_button = wx.Button(self, -1, label="确认生成文档", size=(60, 20))
+        # 选择目录位置选择框
+        h_box1 = wx.BoxSizer(wx.HORIZONTAL)
+        self.export_file_path = wx.TextCtrl(self, value=self.GetExportPath(), size=(-1, 20))
+        open_file_button = wx.Button(self, -1, label='...', size=(30, 20))
+        h_box1.Add(self.export_file_path, 1, 0, 0)
+        h_box1.Add(open_file_button, 0, 0, 0)
+
+        export_button = wx.Button(self, -1, label="生成文档", size=(60, 20))
 
         v_box2.Add(label2, 0, wx.EXPAND | wx.TOP, 10)
         v_box2.Add(self.selected_tables, 1, wx.EXPAND | wx.TOP, 10)
         v_box2.Add(label3, 0, wx.EXPAND | wx.TOP, 30)
-        v_box2.Add(self.export_file_path, 0, wx.EXPAND | wx.TOP, 10)
+        v_box2.Add(h_box1, 0, wx.EXPAND | wx.TOP, 10)
         v_box2.Add(export_button, 0, wx.SHAPED | wx.ALIGN_CENTER | wx.TOP | wx.BOTTOM, 15)
 
         h_box.Add(v_box1, 1, wx.EXPAND | wx.LEFT, 10)
@@ -238,11 +251,27 @@ class ExportFrame(wx.Frame):
         # 绑定事件
         self.Bind(wx.EVT_LISTBOX_DCLICK, self.SelectedTable, self.table_list_box)
         self.Bind(wx.EVT_TEXT_ENTER, self.OnCharChanged, search_Text)
+        self.Bind(wx.EVT_BUTTON, self.OnOpenFile, open_file_button)
         self.Bind(wx.EVT_BUTTON, self.ExportFile, export_button)
         self.Bind(wx.EVT_CLOSE, self._OnClose)
 
         self.Center()
         self.Show()
+
+    def OnOpenFile(self, event):
+        """
+        打开文件选择框
+        :param event:
+        :return:
+        """
+        dlg = wx.DirDialog(None, "选择导出路径", self.defult_export_path,
+                           wx.DD_DEFAULT_STYLE | wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return  # the user changed their mind
+
+        # Proceed loading the file chosen by the user
+        pathname = dlg.GetPath()
+        self.export_file_path.SetValue(pathname + os.sep + self.defult_export_file_name)
 
     @db_session
     def GetTables(self, search_content=None, include=None):
@@ -286,8 +315,9 @@ class ExportFrame(wx.Frame):
         :return:
         """
         filename = "数据字典%s.docx" % str(time.time()).split(".")[0]
-        self.export_file_path = os.path.join(os.path.expanduser("~"), 'Downloads' + os.sep + filename)
-        return self.export_file_path
+        self.defult_export_path = os.path.join(os.path.expanduser("~"), 'Downloads' + os.sep)
+        self.defult_export_file_name = filename
+        return self.defult_export_path + self.defult_export_file_name
 
     def ExportFile(self, event):
         """
